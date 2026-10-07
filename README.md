@@ -1,51 +1,21 @@
 # SkillForge
 
+SkillForge is a deterministic job-to-resume intelligence platform that compares a role against a candidate profile, extracts relevant skills, normalizes aliases, calculates a match score, surfaces missing skills, and recommends next learning steps.
+
 ## Overview
 
-SkillForge is a lightweight career intelligence platform that compares a job description against a candidate resume, extracts relevant skills, normalizes aliases, calculates a dynamic match score, surfaces missing skills, and recommends targeted learning next steps. The core product works without an LLM and uses deterministic rule-based analysis.
-
-## Problem
-
-Job seekers often struggle to understand the gap between a role they want and the skills they currently have. The data is fragmented across job descriptions and resumes, and it can be difficult to measure readiness without a structured comparison process.
-
-## Solution
-
-SkillForge extracts skills from both the job description and resume, normalizes common aliases such as ReactJS, Postgres, and JS, compares required vs. candidate skills, and calculates a score. It then surfaces matched and missing skills, category-level coverage, and deterministic learning recommendations.
+The application is built to help job seekers evaluate how closely their experience aligns with a target role without relying on an LLM. It combines a rule-based skill extraction engine with a lightweight dashboard and persistent analysis history.
 
 ## Features
 
-- Job description and resume analysis
-- Deterministic skill extraction and normalization
-- Skill categorization across programming, backend, frontend, database, cloud, devops, and AI/ML
-- Dynamic match scoring
-- Matched and missing skill display
+- Resume and job description analysis
+- Alias-aware skill normalization
+- Category-based skill matching for programming, backend, frontend, databases, cloud, and DevOps
+- Match score calculation with matched and missing skill output
 - Recommendation engine for missing skills
-- Analysis history persistence in SQLite
-- Light premium dashboard UI
-
-## Demo
-
-The app is designed to run locally as a FastAPI backend plus a Vite React frontend.
-
-## Architecture
-
-```text
-Job description + resume
-        ↓
-Skill extraction
-        ↓
-Normalization and alias mapping
-        ↓
-Skill categorization
-        ↓
-Skill comparison
-        ↓
-Match score + missing skills
-        ↓
-Recommendations + SQLite history
-        ↓
-React dashboard
-```
+- SQLite-backed analysis history
+- Responsive React dashboard
+- FastAPI backend with validation
 
 ## Tech Stack
 
@@ -58,50 +28,41 @@ React dashboard
 - CSS
 - Pytest
 
-## Skill Analysis Pipeline
+## Architecture
 
-1. Clean and normalize input text.
-2. Detect known skills using alias-aware vocabulary matching.
-3. Map each skill to a category.
-4. Compare required vs. candidate skill sets.
-5. Compute match score and skill gap.
-6. Generate recommendations from missing skills.
+```text
+Job description + resume
+        ↓
+Skill extraction
+        ↓
+Alias normalization
+        ↓
+Skill categorization
+        ↓
+Required vs. candidate comparison
+        ↓
+Score + missing skills
+        ↓
+Recommendations + history
+        ↓
+React dashboard
+```
 
 ## Match Score
 
-The match score is computed as:
+The score is calculated as a ratio between matched required skills and total required skills:
 
 $$
-\text{score} = \frac{\text{matched required skills}}{\text{total required skills}} \times 100
+score = \frac{matched\ required\ skills}{total\ required\ skills} \times 100
 $$
-
-## Skill Gap Analysis
-
-The comparison engine returns both matched and missing skills and reports category-level coverage where relevant.
-
-## Recommendation Engine
-
-Deterministic recommendations are generated from a skill-to-guidance map. This allows the app to suggest practical learning topics without depending on a third-party model.
-
-## Database
-
-The MVP uses SQLite with an `analyses` table storing:
-
-- `id`
-- `job_description`
-- `resume_text`
-- `match_score`
-- `matched_skills`
-- `missing_skills`
-- `created_at`
 
 ## API Endpoints
 
 ### GET /health
-Returns service health information.
+Returns the service status and version information.
 
 ### POST /analyze
-Accepts a job description and resume.
+Accepts JSON input with `job_description` and `resume` and returns the skill-gap analysis.
 
 Example request:
 
@@ -113,10 +74,10 @@ Example request:
 ```
 
 ### GET /analyses
-Returns saved analysis history.
+Returns saved analysis entries.
 
 ### GET /analyses/{id}
-Returns a single saved analysis.
+Returns one saved analysis by ID.
 
 ## Project Structure
 
@@ -135,6 +96,7 @@ modelserve/
 │   ├── vite.config.js
 │   └── src/
 ├── tests/
+│   ├── __init__.py
 │   └── test_skillforge.py
 ├── .env.example
 ├── .gitignore
@@ -144,20 +106,41 @@ modelserve/
 └── .venv/
 ```
 
-## Installation
+## Local Setup
 
-1. Create and activate a Python virtual environment.
-2. Install backend requirements:
+### 1. Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 2. Install backend dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Install frontend dependencies:
+### 3. Install frontend dependencies
 
 ```bash
 cd frontend
 npm install
+```
+
+## Run the App
+
+### Backend
+
+```bash
+.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 ## Environment Variables
@@ -171,53 +154,26 @@ DATABASE_PATH=./skillforge.db
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-## Running Backend
-
-```bash
-.venv\Scripts\python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-## Running Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Running Tests
+## Testing
 
 ```bash
 .venv\Scripts\python -m pytest -q
 ```
 
-## Docker
+## Notes
 
-Docker is not required for the MVP and is intentionally left out to keep the setup lightweight and reproducible.
-
-## Screenshots
-
-The project includes a light SaaS dashboard with input panels and the analysis result layout.
-
-## Limitations
-
-- Skill extraction is dictionary/rule based for the MVP.
-- Resume parsing depends on the supplied text content.
-- The match score is derived from detected required skills.
-- Recommendations are deterministic unless a future LLM layer is added.
-- Authentication is intentionally not required for the MVP.
+- This MVP intentionally uses deterministic rules instead of an LLM.
+- SQLite is used for local persistence.
+- The recommendation engine is intentionally explainable and lightweight.
 
 ## Future Improvements
 
-- Add resume upload parsing and richer text extraction
-- Add a user-friendly history detail view
-- Expand the skill taxonomy
-- Add optional LLM-powered personalized recommendations
-- Add deployment configuration for cloud hosting
+- Resume upload and PDF parsing
+- More advanced skill taxonomy expansion
+- User authentication and saved profiles
+- Deeper analytics and trend tracking
+- Optional LLM-enhanced recommendation layer
 
-│   ├── test_model.py
-│   └── test_validation.py
-├── .env.example
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
