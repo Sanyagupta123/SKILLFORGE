@@ -7,6 +7,7 @@ import numpy as np
 
 from app.config import CLASS_NAMES, FEATURE_NAMES, MODEL_PATH
 from app.schemas import FlowerSample, ModelInfoResponse, PredictionResponse
+from ml.train import train_and_save_model
 
 
 class ModelService:
@@ -16,6 +17,8 @@ class ModelService:
         self.load_model()
 
     def load_model(self) -> None:
+        if not self.model_path.exists():
+            train_and_save_model()
         if not self.model_path.exists():
             raise FileNotFoundError(f"Model file not found at {self.model_path}")
         self.model = joblib.load(self.model_path)
@@ -65,13 +68,12 @@ class ModelService:
             raise RuntimeError("Model is not loaded.")
 
         model_name = type(self.model).__name__
-        classes = getattr(self.model, "classes_", list(range(len(CLASS_NAMES))))
 
         return ModelInfoResponse(
             model=model_name,
             dataset="Iris",
-            features=int(getattr(self.model, "n_features_in_", len(FEATURE_NAMES))),
-            classes=len(classes),
+            features=FEATURE_NAMES,
+            classes=CLASS_NAMES,
             feature_names=FEATURE_NAMES,
             class_names=CLASS_NAMES,
         )

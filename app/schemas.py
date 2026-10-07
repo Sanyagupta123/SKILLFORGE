@@ -1,37 +1,48 @@
 from __future__ import annotations
 
-import math
-from typing import Annotated
-
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
-class FlowerSample(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class HealthResponse(BaseModel):
+    service: str
+    status: str
+    version: str
 
-    sepal_length: Annotated[float, Field(..., gt=0, le=20)]
-    sepal_width: Annotated[float, Field(..., gt=0, le=20)]
-    petal_length: Annotated[float, Field(..., gt=0, le=20)]
-    petal_width: Annotated[float, Field(..., gt=0, le=20)]
 
-    @field_validator("sepal_length", "sepal_width", "petal_length", "petal_width")
+class AnalysisRequest(BaseModel):
+    job_description: str
+    resume: str
+
+    @field_validator("job_description", "resume")
     @classmethod
-    def validate_measurement(cls, value: float) -> float:
-        numeric_value = float(value)
-        if not math.isfinite(numeric_value):
-            raise ValueError("Measurement must be a finite number.")
-        return numeric_value
+    def validate_required_text(cls, value: str, info) -> str:
+        field_name = "job description" if info.field_name == "job_description" else "resume"
+        if value is None or not str(value).strip():
+            raise ValueError(f"Please provide a {field_name}.")
+        return str(value).strip()
 
 
-class PredictionResponse(BaseModel):
-    prediction: str
-    confidence: float
+class SkillRecommendation(BaseModel):
+    skill: str
+    recommendations: list[str] = Field(default_factory=list)
 
 
-class ModelInfoResponse(BaseModel):
-    model: str
-    dataset: str
-    features: int
-    classes: int
-    feature_names: list[str]
-    class_names: list[str]
+class AnalysisResponse(BaseModel):
+    id: int | None = None
+    score: float
+    matched: list[str] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list)
+    categories: dict[str, float] = Field(default_factory=dict)
+    recommendations: list[SkillRecommendation] = Field(default_factory=list)
+    job_skills: list[str] = Field(default_factory=list)
+    resume_skills: list[str] = Field(default_factory=list)
+
+
+class AnalysisHistoryItem(BaseModel):
+    id: int
+    job_description: str
+    resume_text: str
+    match_score: float
+    matched_skills: list[str] = Field(default_factory=list)
+    missing_skills: list[str] = Field(default_factory=list)
+    created_at: str

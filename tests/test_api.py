@@ -8,69 +8,34 @@ client = TestClient(app)
 def test_root_endpoint() -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "ModelServe is running"}
+    assert response.json()["service"] == "SkillForge"
 
 
-def test_predict_endpoint() -> None:
+def test_health_endpoint() -> None:
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_analyze_endpoint() -> None:
     payload = {
-        "sepal_length": 5.1,
-        "sepal_width": 3.5,
-        "petal_length": 1.4,
-        "petal_width": 0.2,
+        "job_description": "Looking for a Python developer with FastAPI, PostgreSQL, Docker, AWS and machine learning experience.",
+        "resume": "B.Tech student with experience in Python, FastAPI, PostgreSQL, REST APIs and Machine Learning. Built backend applications using Python and FastAPI.",
     }
 
-    response = client.post("/predict", json=payload)
+    response = client.post("/analyze", json=payload)
     assert response.status_code == 200
-
     data = response.json()
-    assert "prediction" in data
-    assert "confidence" in data
-    assert isinstance(data["confidence"], (int, float))
-    assert data["prediction"] in {"setosa", "versicolor", "virginica"}
+    assert data["score"] > 0
+    assert "Python" in data["matched"]
+    assert "FastAPI" in data["matched"]
+    assert "PostgreSQL" in data["matched"]
+    assert "Machine Learning" in data["matched"]
+    assert "Docker" in data["missing"]
+    assert "AWS" in data["missing"]
 
 
-def test_model_info_endpoint() -> None:
-    response = client.get("/model-info")
+def test_analyse_history_endpoint() -> None:
+    response = client.get("/analyses")
     assert response.status_code == 200
-
-    data = response.json()
-    assert data["model"] == "RandomForestClassifier"
-    assert data["dataset"] == "Iris"
-    assert data["features"] == 4
-    assert data["classes"] == 3
-    assert data["feature_names"] == [
-        "sepal_length",
-        "sepal_width",
-        "petal_length",
-        "petal_width",
-    ]
-
-
-def test_batch_prediction_endpoint() -> None:
-    payload = [
-        {
-            "sepal_length": 5.1,
-            "sepal_width": 3.5,
-            "petal_length": 1.4,
-            "petal_width": 0.2,
-        },
-        {
-            "sepal_length": 6.2,
-            "sepal_width": 2.8,
-            "petal_length": 4.8,
-            "petal_width": 1.8,
-        },
-    ]
-
-    response = client.post("/predict/batch", json=payload)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == len(payload)
-
-    for item in data:
-        assert "prediction" in item
-        assert "confidence" in item
-        assert item["prediction"] in {"setosa", "versicolor", "virginica"}
-        assert isinstance(item["confidence"], (int, float))
+    assert isinstance(response.json(), list)
